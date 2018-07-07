@@ -45,10 +45,10 @@ export default Vue.extend({
       } else {
         this.loadingStr = `Loading Model: ${this.loadingProgress.toFixed(2)}%`;
         const randTime = Math.random() * 300;
-        let randProgress = Math.random() * 1.5;
-        randProgress = Math.min(randProgress, 100);
+        const randProgress = Math.random() * 1.5;
         setTimeout(() => {
           this.loadingProgress += randProgress;
+          this.loadingProgress = Math.min(this.loadingProgress, 99.0);
           this.mockLoading();
         }, randTime);
       }
