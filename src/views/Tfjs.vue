@@ -105,5 +105,6 @@ canvas {
   width: 400px;
 
   border: 1px solid #777;
+  background-color: #ffc;
 }
 </style>
