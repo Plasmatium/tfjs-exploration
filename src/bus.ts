@@ -24,7 +24,7 @@ const bus = new Vue({
   },
   methods: {
     async load_model() {
-      this.model = await tf.loadModel('http://192.168.8.158:8008/shared_model/model.json');
+      this.model = await tf.loadModel("https://raw.githubusercontent.com/Plasmatium/tfjs-exploration/master/src/assets/shared_model/model.json");
       this.modelLoaded = true;
     },
     getImgTensor() {
