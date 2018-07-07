@@ -1,52 +1,56 @@
 import Vue from 'vue';
-import * as tf from "@tensorflow/tfjs";
+import * as tf from '@tensorflow/tfjs';
 
+Object.assign(window, { tf });
 // Define a model for linear regression.
-const model = tf.sequential();
-model.add(tf.layers.dense({ units: 256, activation: 'relu', inputShape: [10] }));
-model.add(tf.layers.dense({ units: 1, activation: 'linear' }));
+const offscreenCV = document.createElement('canvas');
+const offscreenCtx = offscreenCV.getContext('2d') as CanvasRenderingContext2D;
 
-// Prepare the model for training: Specify the loss and the optimizer.
-model.compile({ loss: 'meanSquaredError', optimizer: 'adam' });
-
-// Generate some synthetic data for training.
-const xs = tf.randomNormal([32, 10]);
-const ys = tf.randomNormal([32, 1]);
+Object.assign(offscreenCV, { width: 28, height: 28, style: 'border: 1px solid blue' });
+document.body.appendChild(offscreenCV);
 
 const bus = new Vue({
   data() {
     return {
-      val: [] as number[],
-      hintStr: 'Epoches',
-      startTime: new Date(),
-      endTime: new Date(),
+      model: null as any as tf.Model,
+      modelLoaded: false,
+      ctx: null as any as CanvasRenderingContext2D,
+      cv: null as any as HTMLCanvasElement,
+      offscreenCV,
+      offscreenCtx,
+      pendingPredictData: null as any as Uint8Array,
+      currNumImgData: [] as number[],
     };
   },
   methods: {
-    async fit() {
-      await model.fit(xs, ys, {
-        epochs: 16,
-        batchSize: 4,
-        callbacks: {
-          onEpochEnd: async (epoch, log) => {
-            if (epoch%10 !== 0) return;
-            let hintStr = `Epoch ${epoch}: loss: ${log && log.loss}`;
-            console.log(hintStr)
-            // await this.$nextTick()
-            const el = document.getElementById("pred") as HTMLElement;
-            console.log(el)
-            el.innerText = hintStr
-          }
-        }
-      });
-      const data = await(model.predict(
-        tf.randomNormal([1, 10])
-      ) as any).data();
-      console.log(data)
-      this.val = data
-      bus.endTime = new Date()
-    }
-  }
+    async load_model() {
+      this.model = await tf.loadModel('http://192.168.8.158:8008/shared_model/model.json');
+      this.modelLoaded = true;
+    },
+    getImgTensor() {
+      const {
+        ctx, cv, offscreenCV, offscreenCtx,
+      } = bus;
+      offscreenCtx.clearRect(0, 0, 28, 28);
+      offscreenCtx.drawImage(cv, 0, 0, 28, 28);
+      const imgData = offscreenCtx.getImageData(0, 0, 28, 28).data;
+
+      const data = [];
+      for (let i = 0; i < 28 * 28 * 4; i += 4) {
+        data.push(imgData[i + 2] / 255.0 - 0.5);
+      }
+      this.currNumImgData = data;
+      return tf.tensor4d(data, [1, 28, 28, 1]);
+    },
+    async predict() {
+      const pred = this.model.predict(this.getImgTensor());
+      (pred as any).print();
+      const predOneHot = await pred;
+
+      const predNum = await (await tf.argMax(predOneHot as any, 1)).data();
+      return predNum;
+    },
+  },
 });
 
 export default bus;
