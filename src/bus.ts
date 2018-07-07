@@ -7,7 +7,7 @@ const offscreenCV = document.createElement('canvas');
 const offscreenCtx = offscreenCV.getContext('2d') as CanvasRenderingContext2D;
 
 Object.assign(offscreenCV, { width: 28, height: 28, style: 'border: 1px solid blue' });
-document.body.appendChild(offscreenCV);
+// document.body.appendChild(offscreenCV);
 
 const bus = new Vue({
   data() {

@@ -1,7 +1,7 @@
 <template>
   <div>
     <div>Tensorflow JS Vue</div>
-    <div>{{bus.modelLoaded?'model loaded':'loading model'}}</div>
+    <div>{{loadingStr}}</div>
     <h1>prediction: {{predNum}}</h1>
     <canvas id="cv" width="400" height="400"></canvas>
     <div>
@@ -24,6 +24,8 @@ export default Vue.extend({
       predNum: null as any as number,
       newStarting: true,
       predTimerId: -1,
+      loadingStr: '',
+      loadingProgress: 0.0,
     };
   },
   methods: {
@@ -36,10 +38,26 @@ export default Vue.extend({
         ctx.clearRect(0, 0, 400, 400);
       }, 1000);
     },
+
+    mockLoading() {
+      if (bus.modelLoaded) {
+        this.loadingStr = 'Model loaded 100.0%';
+      } else {
+        this.loadingStr = `Loading Model: ${this.loadingProgress.toFixed(2)}%`;
+        const randTime = Math.random() * 300;
+        let randProgress = Math.random() * 1.5;
+        randProgress = Math.min(randProgress, 100);
+        setTimeout(() => {
+          this.loadingProgress += randProgress;
+          this.mockLoading();
+        }, randTime);
+      }
+    },
   },
   mounted() {
     (window as any).bus = bus;
     this.bus.load_model();
+    this.mockLoading();
 
     const canvas = document.getElementById('cv') as HTMLCanvasElement;
     this.bus.cv = canvas;
@@ -58,11 +76,6 @@ export default Vue.extend({
 
       ctx.lineTo(drawX, drawY);
       ctx.stroke();
-
-      window.clearTimeout(this.predTimerId);
-      this.predTimerId = window.setTimeout(() => {
-        this.predict();
-      }, 500);
     });
 
     cv.addEventListener('touchstart', (e) => {
@@ -72,6 +85,14 @@ export default Vue.extend({
 
       ctx.beginPath();
       ctx.moveTo(drawX, drawY);
+    });
+
+    cv.addEventListener('touchend', (e) => {
+      e.preventDefault();
+      window.clearTimeout(this.predTimerId);
+      this.predTimerId = window.setTimeout(() => {
+        this.predict();
+      }, 500);
     });
   },
 });
